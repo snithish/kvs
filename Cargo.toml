@@ -1,0 +1,8 @@
+[package]
+name = "kvs"
+version = "0.1.0"
+authors = ["Nithish Sankaranarayanan <nithishsankaranarayanan@gmail.com>"]
+description = "A key-value store -> following PingCAP Rust Talent plan"
+edition = "2018"
+
+[dependencies]
