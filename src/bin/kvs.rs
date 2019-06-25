@@ -3,7 +3,7 @@ extern crate clap;
 
 use std::io;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use kvs::KvStore;
 
@@ -17,17 +17,21 @@ fn main() -> io::Result<()> {
     let set_sub_command = SubCommand::with_name(SET_COMMAND_NAME)
         .arg(&key_args)
         .arg(&value_args)
+        .about("Set a key to value mapping")
         .help("Add <key> and associated <value> to KVS");
     let get_sub_command = SubCommand::with_name(GET_COMMAND_NAME)
         .arg(&key_args)
+        .about("Get value mapped to key")
         .help("Query to fetch value associated with <key> if present");
     let remove_sub_command = SubCommand::with_name(REMOVE_COMMAND_NAME)
         .arg(&key_args)
+        .about("Remove associated value")
         .help("Remove <key> from KVS");
 
     let app: App = app_from_crate!();
 
     let matches = app
+        .setting(AppSettings::ArgRequiredElseHelp)
         .subcommands(vec![set_sub_command, get_sub_command, remove_sub_command])
         .get_matches();
 
@@ -53,7 +57,7 @@ fn main() -> io::Result<()> {
             println!("{} removed from kvs", key);
             Ok(())
         }
-        _ => Ok(()),
+        _ => unreachable!(),
     }
 }
 
