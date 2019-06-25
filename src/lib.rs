@@ -14,7 +14,7 @@ impl KvStore {
         self.store.insert(key, value);
     }
     pub fn get(&self, key: String) -> Option<String> {
-        self.store.get(key.as_str()).map(|x| x.to_owned())
+        self.store.get(key.as_str()).cloned()
     }
     pub fn remove(&mut self, key: String) {
         self.store.remove(key.as_str());
