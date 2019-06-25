@@ -3,15 +3,15 @@ pub struct KvStore {}
 
 impl KvStore {
     pub fn new() -> KvStore {
-        unimplemented!()
+        KvStore {}
     }
     pub fn set(&self, key: String, value: String) {
-        unimplemented!()
+        unimplemented!("set")
     }
     pub fn get(&self, key: String) -> Option<String> {
-        unimplemented!()
+        unimplemented!("get")
     }
     pub fn remove(&self, key: String) {
-        unimplemented!()
+        unimplemented!("remove")
     }
 }
