@@ -31,7 +31,7 @@ fn main() -> io::Result<()> {
         .subcommands(vec![set_sub_command, get_sub_command, remove_sub_command])
         .get_matches();
 
-    let kvs_store = KvStore::new();
+    let mut kvs_store = KvStore::new();
 
     match matches.subcommand() {
         (SET_COMMAND_NAME, Some(set_matches)) => {

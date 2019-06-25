@@ -1,17 +1,22 @@
+use std::collections::HashMap;
+
 #[allow(non_snake_case)]
-pub struct KvStore {}
+#[derive(Default)]
+pub struct KvStore {
+    store: HashMap<String, String>,
+}
 
 impl KvStore {
     pub fn new() -> KvStore {
-        KvStore {}
+        Default::default()
     }
-    pub fn set(&self, key: String, value: String) {
-        unimplemented!("set")
+    pub fn set(&mut self, key: String, value: String) {
+        self.store.insert(key, value);
     }
     pub fn get(&self, key: String) -> Option<String> {
-        unimplemented!("get")
+        self.store.get(key.as_str()).map(|x| x.to_owned())
     }
-    pub fn remove(&self, key: String) {
-        unimplemented!("remove")
+    pub fn remove(&mut self, key: String) {
+        self.store.remove(key.as_str());
     }
 }
