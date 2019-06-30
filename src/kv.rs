@@ -3,12 +3,14 @@
 
 extern crate core;
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 
 use super::error::Result;
+use crate::kv::Command::{Remove, Set};
 
 /// Used to represent a in-memory key value store
 /// # Examples
@@ -29,11 +31,21 @@ pub struct KvStore {
     store: HashMap<String, String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "command")]
+enum Command {
+    Set { key: String, value: String },
+    Remove { key: String },
+}
+
 impl KvStore {
     /// Instantiates a new store
     pub fn open(file_path: impl Into<PathBuf>) -> Result<KvStore> {
         let log_path = file_path.into().join("temp.log");
-        let file = File::create(log_path)?;
+        let file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(log_path)?;
         Ok(KvStore {
             file,
             store: HashMap::new(),
@@ -41,8 +53,9 @@ impl KvStore {
     }
     /// Create a mapping between`key` and `value`
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
-        write!(self.file, "some mutation");
-        self.store.insert(key, value);
+        self.store.insert(key.clone(), value.clone());
+        let set_command: Command = Set { key, value };
+        write!(self.file, "{}", serde_json::to_string(&set_command)?)?;
         Ok(())
     }
     /// Return value associated with `key`, Returns `None` when `key`
@@ -53,6 +66,8 @@ impl KvStore {
     /// Delete key denoted `key`
     pub fn remove(&mut self, key: String) -> Result<()> {
         self.store.remove(key.as_str());
+        let remove_command: Command = Remove { key };
+        write!(self.file, "{}", serde_json::to_string(&remove_command)?)?;
         Ok(())
     }
 }

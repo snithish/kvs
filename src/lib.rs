@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate failure_derive;
+extern crate serde;
 
 mod error;
 mod kv;

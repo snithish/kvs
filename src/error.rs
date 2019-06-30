@@ -1,6 +1,6 @@
 extern crate failure;
 
-use crate::error::KvError::IoError;
+use crate::error::KvError::{IoError, SerdeError};
 use core::result;
 use std::io;
 
@@ -13,11 +13,22 @@ pub enum KvError {
     },
     #[fail(display = "An unknown error has occurred.")]
     UnknownError,
+    #[fail(display = "Serde error: {}", error)]
+    SerdeError {
+        #[cause]
+        error: serde_json::Error,
+    },
 }
 
 impl From<io::Error> for KvError {
     fn from(io_error: io::Error) -> KvError {
         IoError { error: io_error }
+    }
+}
+
+impl From<serde_json::Error> for KvError {
+    fn from(serde_error: serde_json::Error) -> KvError {
+        SerdeError { error: serde_error }
     }
 }
 
