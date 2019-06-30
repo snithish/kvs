@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate clap;
 
-use std::io;
-
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use kvs::KvStore;
+use kvs::Result;
+use std::env::current_dir;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     const SET_COMMAND_NAME: &str = "set";
     const GET_COMMAND_NAME: &str = "get";
     const REMOVE_COMMAND_NAME: &str = "rm";
@@ -35,25 +35,25 @@ fn main() -> io::Result<()> {
         .subcommands(vec![set_sub_command, get_sub_command, remove_sub_command])
         .get_matches();
 
-    let mut kvs_store = KvStore::new();
+    let mut kvs_store = KvStore::open(current_dir()?)?;
 
     match matches.subcommand() {
         (SET_COMMAND_NAME, Some(set_matches)) => {
             let key = key_string(&set_matches);
             let value = set_matches.value_of("value").unwrap().to_string();
-            kvs_store.set(key.clone(), value.clone());
+            kvs_store.set(key.clone(), value.clone())?;
             println!("set {} to {}", key, value);
             Ok(())
         }
         (GET_COMMAND_NAME, Some(get_command_matches)) => {
             let key = key_string(get_command_matches);
-            let fetched_value = kvs_store.get(key.clone()).unwrap();
+            let fetched_value = kvs_store.get(key.clone())?.unwrap();
             println!("{} is associated with key: {} ", fetched_value, key);
             Ok(())
         }
         (REMOVE_COMMAND_NAME, Some(remove_command_matches)) => {
             let key = key_string(&remove_command_matches);
-            kvs_store.remove(key.clone());
+            kvs_store.remove(key.clone())?;
             println!("{} removed from kvs", key);
             Ok(())
         }
