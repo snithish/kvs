@@ -3,14 +3,16 @@
 
 extern crate core;
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 
-use super::error::Result;
+use serde::{Deserialize, Serialize};
+
 use crate::kv::Command::{Remove, Set};
+
+use super::error::Result;
 
 /// Used to represent a in-memory key value store
 /// # Examples
@@ -38,24 +40,66 @@ enum Command {
     Remove { key: String },
 }
 
+impl From<String> for Command {
+    fn from(line_item: String) -> Self {
+        serde_json::from_str(&line_item).unwrap()
+    }
+}
+
+const WAL_FILE_NAME: &str = "wal.log";
+
 impl KvStore {
     /// Instantiates a new store
     pub fn open(file_path: impl Into<PathBuf>) -> Result<KvStore> {
-        let log_path = file_path.into().join("temp.log");
+        let log_path = file_path.into().join(WAL_FILE_NAME);
+        let constructed_map = KvStore::construct_hash_map(&log_path);
         let file = OpenOptions::new()
             .append(true)
             .create(true)
             .open(log_path)?;
         Ok(KvStore {
             file,
-            store: HashMap::new(),
+            store: constructed_map,
         })
     }
+
+    fn construct_hash_map(log_path: &PathBuf) -> HashMap<String, String> {
+        OpenOptions::new()
+            .read(true)
+            .open(log_path)
+            .map(|file| {
+                let reader = BufReader::new(file);
+                let commands: Vec<Command> = reader
+                    .lines()
+                    .map(|line| Command::from(line.unwrap()))
+                    .collect();
+                let mut map = HashMap::new();
+                commands.iter().for_each(|x| match x {
+                    Set { key, value } => {
+                        map.insert(key.clone(), value.clone());
+                    }
+                    Remove { key } => {
+                        map.remove(key);
+                    }
+                });
+                map
+            })
+            .unwrap_or_default()
+    }
+
     /// Create a mapping between`key` and `value`
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
-        self.store.insert(key.clone(), value.clone());
-        let set_command: Command = Set { key, value };
-        write!(self.file, "{}", serde_json::to_string(&set_command)?)?;
+        let command: Command = Set {
+            key: key.clone(),
+            value: value.clone(),
+        };
+        self.write_wal_log(command)?;
+        self.store.insert(key, value);
+        Ok(())
+    }
+
+    fn write_wal_log(&mut self, command: Command) -> Result<()> {
+        writeln!(self.file, "{}", serde_json::to_string(&command)?)?;
         Ok(())
     }
     /// Return value associated with `key`, Returns `None` when `key`
@@ -65,9 +109,8 @@ impl KvStore {
     }
     /// Delete key denoted `key`
     pub fn remove(&mut self, key: String) -> Result<()> {
+        self.write_wal_log(Remove { key: key.clone() })?;
         self.store.remove(key.as_str());
-        let remove_command: Command = Remove { key };
-        write!(self.file, "{}", serde_json::to_string(&remove_command)?)?;
         Ok(())
     }
 }
