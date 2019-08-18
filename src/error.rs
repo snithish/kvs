@@ -18,6 +18,8 @@ pub enum KvError {
         #[cause]
         error: serde_json::Error,
     },
+    #[fail(display = "key not found")]
+    KeyNotFound,
 }
 
 impl From<io::Error> for KvError {

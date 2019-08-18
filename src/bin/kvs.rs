@@ -1,11 +1,13 @@
 #[macro_use]
 extern crate clap;
 
+use std::env::current_dir;
+
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
-use kvs::KvStore;
 use kvs::Result;
-use std::env::current_dir;
+use kvs::{KvError, KvStore};
+use std::process::exit;
 
 fn main() -> Result<()> {
     const SET_COMMAND_NAME: &str = "set";
@@ -42,23 +44,27 @@ fn main() -> Result<()> {
             let key = key_string(&set_matches);
             let value = set_matches.value_of("value").unwrap().to_string();
             kvs_store.set(key.clone(), value.clone())?;
-            println!("set {} to {}", key, value);
-            Ok(())
         }
         (GET_COMMAND_NAME, Some(get_command_matches)) => {
             let key = key_string(get_command_matches);
-            let fetched_value = kvs_store.get(key.clone())?.unwrap();
-            println!("{} is associated with key: {} ", fetched_value, key);
-            Ok(())
+            let maybe_value = kvs_store.get(key.clone())?;
+            let output_string = maybe_value.map_or("Key not found".into(), |value| value);
+            println!("{}", output_string);
         }
         (REMOVE_COMMAND_NAME, Some(remove_command_matches)) => {
             let key = key_string(&remove_command_matches);
-            kvs_store.remove(key.clone())?;
-            println!("{} removed from kvs", key);
-            Ok(())
+            match kvs_store.remove(key.clone()) {
+                Ok(()) => {}
+                Err(KvError::KeyNotFound) => {
+                    println!("Key not found");
+                    exit(1);
+                }
+                Err(e) => return Err(e),
+            }
         }
         _ => unreachable!(),
     }
+    Ok(())
 }
 
 fn key_string(matches: &ArgMatches) -> String {

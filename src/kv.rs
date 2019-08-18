@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::kv::Command::{Remove, Set};
 
 use super::error::Result;
+use crate::KvError;
 
 /// Used to represent a in-memory key value store
 /// # Examples
@@ -109,6 +110,9 @@ impl KvStore {
     }
     /// Delete key denoted `key`
     pub fn remove(&mut self, key: String) -> Result<()> {
+        if !self.store.contains_key(key.as_str()) {
+            return Err(KvError::KeyNotFound);
+        }
         self.write_wal_log(Remove { key: key.clone() })?;
         self.store.remove(key.as_str());
         Ok(())
